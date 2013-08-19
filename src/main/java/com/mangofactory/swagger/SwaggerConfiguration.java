@@ -2,7 +2,6 @@ package com.mangofactory.swagger;
 
 import com.fasterxml.classmate.ResolvedType;
 import com.fasterxml.classmate.TypeResolver;
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.mangofactory.swagger.filters.Filter;
 import com.mangofactory.swagger.filters.FilterContext;
@@ -24,7 +23,7 @@ import static com.google.common.base.Strings.*;
 import static com.google.common.collect.Iterables.*;
 import static com.google.common.collect.Lists.*;
 import static com.mangofactory.swagger.filters.Filters.Fn.*;
-import static com.mangofactory.swagger.models.ResolvedTypes.asResolvedType;
+import static com.mangofactory.swagger.models.ResolvedTypes.*;
 
 public class SwaggerConfiguration {
     public static final String API_DOCS_PATH = "/api-docs";
@@ -63,39 +62,45 @@ public class SwaggerConfiguration {
         return context.subject();
     }
 
-    public boolean isExcluded(String documentationEndpointUri) {
-        if(isNullOrEmpty(documentationEndpointUri)) {
+    public boolean isExcluded(List<String> documentationEndpointUris) {
+        if (documentationEndpointUris == null) {
             return false;
         }
-        String controllerUri = documentationEndpointUri;
-        if (documentationEndpointUri.contains(API_DOCS_PATH)) {
-           controllerUri = documentationEndpointUri.substring(API_DOCS_PATH.length());
-        }
-        return excludedResources.contains(controllerUri);
+        for(String uri: documentationEndpointUris) {
+            if(isNullOrEmpty(uri)) {
+                return false;
+            }
+            String controllerUri = uri;
+            if (uri.contains(API_DOCS_PATH)) {
+               controllerUri = uri.substring(API_DOCS_PATH.length());
+            }
+            if (excludedResources.contains(controllerUri)) {
+                return true;
+            }
+       }
+       return false;
     }
 
-    public boolean isParameterTypeIgnorable(final Class<?> parameterType) {
-        TypeProcessingRule rule = findProcessingRule(parameterType);
+    public boolean isParameterTypeIgnorable(final ResolvedType type) {
+        TypeProcessingRule rule = findProcessingRule(type);
         return rule.isIgnorable();
     }
 
     public ResolvedType maybeGetAlternateType(final ResolvedType parameterType) {
-        if (parameterType.getTypeParameters().size() == 0) {
-            TypeProcessingRule rule = findProcessingRule(parameterType.getErasedType());
-            if (rule.hasAlternateType()) {
-                return asResolvedType(typeResolver, rule.alternateType());
-            }
+        TypeProcessingRule rule = findProcessingRule(parameterType);
+        if (rule.hasAlternateType()) {
+            return rule.alternateType();
         }
         return parameterType;
     }
 
-    private TypeProcessingRule findProcessingRule(final Class<?> parameterType) {
+    private TypeProcessingRule findProcessingRule(final ResolvedType parameterType) {
         return find(typeProcessingRules, new Predicate<TypeProcessingRule>() {
-                @Override
-                public boolean apply(TypeProcessingRule input) {
-                    return Objects.equal(input.originalType(), parameterType);
-                }
-            }, new DefaultProcessingRule(parameterType));
+            @Override
+            public boolean apply(TypeProcessingRule input) {
+                return input.originalType().equals(parameterType);
+            }
+        }, new DefaultProcessingRule(parameterType.getErasedType()));
     }
 
     public DocumentationSchemaProvider getSchemaProvider() {
@@ -130,13 +135,13 @@ public class SwaggerConfiguration {
         }
 
         @Override
-        public Class<?> originalType() {
-            return clazz;
+        public ResolvedType originalType() {
+            return asResolvedType(clazz);
         }
 
         @Override
-        public Class<?> alternateType() {
-            return clazz;
+        public ResolvedType alternateType() {
+            return asResolvedType(clazz);
         }
     }
 }

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.mangofactory.swagger.AliasedResolvedField;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,7 @@ import static com.google.common.collect.Maps.*;
 import static com.mangofactory.swagger.models.ResolvedTypes.*;
 
 @Component
+@Slf4j
 public class Jackson2SchemaDescriptor implements SchemaDescriptor {
     private final ObjectMapper objectMapper;
 
@@ -50,6 +52,10 @@ public class Jackson2SchemaDescriptor implements SchemaDescriptor {
         for (ResolvedField childField: resolvedMemberWithMembers.getMemberFields()){
             if (propertyLookup.containsKey(childField.getName())) {
                 BeanPropertyDefinition propertyDefinition = propertyLookup.get(childField.getName());
+                if(propertyDefinition == null) {
+                    log.error("Property def is null for "+childField.getName()+"");
+                    continue;
+                }
                 AnnotatedMember member = propertyDefinition.getPrimaryMember();
                 if (member != null
                         && member.getMember() != null
@@ -75,7 +81,9 @@ public class Jackson2SchemaDescriptor implements SchemaDescriptor {
             if (propertyLookup.containsKey(childField.getName())) {
                 BeanPropertyDefinition propertyDefinition = propertyLookup.get(childField.getName());
                 AnnotatedMember member = propertyDefinition.getPrimaryMember();
-                if (member.getMember() != null && Field.class.isAssignableFrom(member.getMember().getClass())) {
+                if (member != null
+                        && member.getMember() != null
+                        && Field.class.isAssignableFrom(member.getMember().getClass())) {
                     serializationCandidates.add(new AliasedResolvedField(propertyDefinition.getName() , childField));
                 }
             }
