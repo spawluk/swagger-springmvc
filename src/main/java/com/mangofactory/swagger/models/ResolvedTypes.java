@@ -14,8 +14,11 @@ import com.google.common.collect.Ordering;
 import com.google.common.primitives.Ints;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,8 +51,7 @@ public class ResolvedTypes {
     }
 
     public static boolean isSetter(Method method) {
-        return method.getReturnType().equals(void.class) &&
-                method.getParameterTypes().length == 1 &&
+        return method.getParameterTypes().length == 1 &&
                 method.getName().matches("^set[a-zA-Z].*");
     }
 
@@ -128,20 +130,76 @@ public class ResolvedTypes {
                         return input.getRawMember().getName().equals(methodToResolve.getName());
                     }
                 });
-        return resolveToMethodWithMaxResolvedTypes(filtered);
+        return resolveToMethodWithMaxResolvedTypes(filtered, methodToResolve);
     }
 
-    private static ResolvedMethod resolveToMethodWithMaxResolvedTypes(Iterable<ResolvedMethod> filtered) {
-        if (Iterables.size(filtered) > 0) {
-            return Ordering.from(new Comparator<ResolvedMethod>() {
-                @Override
-                public int compare(ResolvedMethod first, ResolvedMethod second) {
-                    return Ints.compare(first.getArgumentCount(), second.getArgumentCount());
-                }
-            }).max(filtered);
+    private static ResolvedMethod resolveToMethodWithMaxResolvedTypes(Iterable<ResolvedMethod> filtered,
+            Method methodToResolve) {
+        if (Iterables.size(filtered) > 1) {
+            Iterable<ResolvedMethod> covariantMethods = covariantMethods(filtered, methodToResolve);
+            if (Iterables.size(covariantMethods) == 0) {
+                return Ordering.from(new Comparator<ResolvedMethod>() {
+                    @Override
+                    public int compare(ResolvedMethod first, ResolvedMethod second) {
+                        return Ints.compare(first.getArgumentCount(), second.getArgumentCount());
+                    }
+                }).max(filtered);
+            } else if (Iterables.size(covariantMethods) == 1) {
+                return Iterables.getFirst(covariantMethods, null);
+            } else {
+                return Ordering.from(new Comparator<ResolvedMethod>() {
+                    @Override
+                    public int compare(ResolvedMethod first, ResolvedMethod second) {
+                        return Ints.compare(first.getArgumentCount(), second.getArgumentCount());
+                    }
+                }).max(covariantMethods);
+            }
+        } else if (Iterables.size(filtered) == 1) {
+            return Iterables.getFirst(filtered, null);
         }
         return null;
     }
+
+    private static Iterable<ResolvedMethod> covariantMethods(Iterable<ResolvedMethod> filtered,
+            final Method methodToResolve) {
+
+        return filter(methodsWithSameNumberOfParams(filtered, methodToResolve), new Predicate<ResolvedMethod>() {
+            @Override
+            public boolean apply(ResolvedMethod input) {
+                for( int index = 0; index < input.getArgumentCount(); index++) {
+                    if (!covariant(input.getArgumentType(index), methodToResolve.getGenericParameterTypes()[index])) {
+                        return false;
+                    }
+                }
+                return contravariant(input.getReturnType(), methodToResolve.getGenericReturnType());
+            }
+        });
+    }
+
+    private static boolean contravariant(ResolvedType contravariantType, Type with) {
+        return (with instanceof Class && contravariantType.getErasedType().isAssignableFrom((Class<?>) with))
+                || with instanceof ParameterizedType &&
+                contravariantType.getErasedType().isAssignableFrom((Class<?>) ((ParameterizedType) with).getRawType());
+    }
+
+    private static boolean covariant(ResolvedType covariantType, Type with) {
+        return (with instanceof Class && ((Class<?>) with).isAssignableFrom(covariantType.getErasedType()))
+                || with instanceof ParameterizedType &&
+                ((Class<?>) ((ParameterizedType) with).getRawType()).isAssignableFrom(covariantType.getErasedType());
+    }
+
+
+    private static Iterable<ResolvedMethod> methodsWithSameNumberOfParams(Iterable<ResolvedMethod> filtered,
+            final Method methodToResolve) {
+
+        return filter(filtered, new Predicate<ResolvedMethod>() {
+            @Override
+            public boolean apply(ResolvedMethod input) {
+                return input.getArgumentCount() == methodToResolve.getParameterTypes().length;
+            }
+        });
+    }
+
 
     public static ResolvedType asResolvedType(Class clazz) {
         return new TypeResolver().resolve(clazz);
@@ -152,19 +210,31 @@ public class ResolvedTypes {
     }
 
     public static String modelName(ResolvedType resolvedType) {
+        if (resolvedType.getErasedType() == Object.class) {
+            return "any";
+        }
+
+        String begin = "«";
+        String end = "»";
+        if (resolvedType.isArray()
+                || List.class.equals(resolvedType.getErasedType())
+                || Set.class.equals(resolvedType.getErasedType())) {
+            begin = "[";
+            end = "]";
+        }
         StringBuilder sb = new StringBuilder();
         sb.append(resolvedType.getErasedType().getSimpleName());
         boolean first = true;
         for (ResolvedType typeParam : resolvedType.getTypeParameters()) {
             if (first) {
-                sb.append(String.format("[%s", typeParam.getErasedType().getSimpleName()));
+                sb.append(String.format("%s%s", begin, modelName(typeParam)));
                 first = false;
             } else {
-                sb.append(String.format(",%s", typeParam.getErasedType().getSimpleName()));
+                sb.append(String.format(",%s", modelName(typeParam)));
             }
         }
         if (!first) {
-            sb.append("]");
+            sb.append(end);
         }
         return sb.toString();
     }
