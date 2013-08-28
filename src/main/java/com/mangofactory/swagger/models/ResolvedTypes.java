@@ -177,9 +177,10 @@ public class ResolvedTypes {
     }
 
     private static boolean contravariant(ResolvedType contravariantType, Type with) {
-        return (with instanceof Class && contravariantType.getErasedType().isAssignableFrom((Class<?>) with))
-                || with instanceof ParameterizedType &&
-                contravariantType.getErasedType().isAssignableFrom((Class<?>) ((ParameterizedType) with).getRawType());
+        return (contravariantType == null && with.equals(Void.TYPE)
+            || with instanceof Class && contravariantType.getErasedType().isAssignableFrom((Class<?>) with))
+            || with instanceof ParameterizedType &&
+            contravariantType.getErasedType().isAssignableFrom((Class<?>) ((ParameterizedType) with).getRawType());
     }
 
     private static boolean covariant(ResolvedType covariantType, Type with) {
