@@ -11,14 +11,12 @@ public class AnnotatedEndpointFilter implements Filter<DocumentationEndPoint> {
         doc.setDescription(getDescription(controllerClass));
     }
 
-
     private String getDescription(Class<?> controllerClass) {
         Api apiAnnotation = controllerClass.getAnnotation(Api.class);
         if (apiAnnotation == null) {
             return "";
         }
         return apiAnnotation.description();
-
     }
 
 }

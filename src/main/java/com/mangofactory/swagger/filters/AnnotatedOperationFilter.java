@@ -5,16 +5,16 @@ import com.google.common.base.Objects;
 import com.google.common.base.Splitter;
 import com.mangofactory.swagger.ControllerDocumentation;
 import com.mangofactory.swagger.SwaggerConfiguration;
+import com.mangofactory.swagger.annotations.Annotations;
 import com.mangofactory.swagger.annotations.ApiModel;
 import com.mangofactory.swagger.models.Model;
+import com.mangofactory.swagger.models.ResolvedTypes;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.core.DocumentationOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.method.HandlerMethod;
 
 import static com.google.common.collect.Lists.*;
-import static com.mangofactory.swagger.annotations.Annotations.*;
-import static com.mangofactory.swagger.models.ResolvedTypes.*;
 
 @Slf4j
 public class AnnotatedOperationFilter implements Filter<DocumentationOperation> {
@@ -32,7 +32,8 @@ public class AnnotatedOperationFilter implements Filter<DocumentationOperation> 
 
         ApiOperation apiOperation = handlerMethod.getMethodAnnotation(ApiOperation.class);
         ResolvedType resolvedType = null;
-        ResolvedType parameterType = methodReturnType(configuration.getTypeResolver(), handlerMethod.getMethod());
+        ResolvedType parameterType = ResolvedTypes.methodReturnType(configuration.getTypeResolver(), 
+                handlerMethod.getMethod());
         if (parameterType != null) {
             resolvedType = configuration.maybeGetAlternateType(parameterType);
         }
@@ -50,10 +51,10 @@ public class AnnotatedOperationFilter implements Filter<DocumentationOperation> 
         }
         ApiModel apiModel = handlerMethod.getMethodAnnotation(ApiModel.class);
         if (apiModel != null) {
-            if (resolvedType == null || Objects.equal(resolvedType.getErasedType(), getAnnotatedType(apiModel))) {
-                operation.setResponseClass(getAnnotatedType(apiModel));
-                ResolvedType apiModelAsResolvedType = asResolvedType(apiModel.type());
-                String simpleName = modelName(apiModelAsResolvedType);
+            if (resolvedType == null || Objects.equal(resolvedType.getErasedType(), apiModel.type())) {
+                operation.setResponseClass(Annotations.getAnnotatedType(apiModel));
+                ResolvedType apiModelAsResolvedType = ResolvedTypes.asResolvedType(apiModel.type());
+                String simpleName = ResolvedTypes.modelName(apiModelAsResolvedType);
                 controllerDocumentation.putModel(simpleName, new Model(simpleName, apiModelAsResolvedType, true));
             } else {
                 log.warn("Api Model override does not match the resolved type");
