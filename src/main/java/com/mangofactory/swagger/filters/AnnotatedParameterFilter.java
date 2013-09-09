@@ -61,7 +61,7 @@ public class AnnotatedParameterFilter implements Filter<DocumentationParameter> 
         parameter.setAllowMultiple(apiParam.allowMultiple());
         ApiModel apiModel = methodParameter.getParameterAnnotation(ApiModel.class);
         if (apiModel != null) {
-            if (Objects.equal(resolvedType.getErasedType(), getAnnotatedType(apiModel))) {
+            if (Objects.equal(resolvedType.getErasedType(), apiModel.type())) {
                 parameter.setDataType(getAnnotatedType(apiModel));
                 ResolvedType apiModelAsResolvedType = asResolvedType(apiModel.type());
                 String simpleName = modelName(apiModelAsResolvedType);

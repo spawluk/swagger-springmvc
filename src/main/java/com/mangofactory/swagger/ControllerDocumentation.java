@@ -42,10 +42,12 @@ public class ControllerDocumentation extends Documentation {
 
 
     public void addEndpoint(DocumentationEndPoint endpoint) {
+        log.debug(String.format("Add endpoint: %s", endpoint.getPath()));
         endpoints.add(endpoint);
     }
 
     public void putModel(String name, Model model) {
+        log.debug(String.format("%s add type %s", basePath(), model.getType()));
         modelMap.put(name, model);
     }
 
