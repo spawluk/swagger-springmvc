@@ -23,7 +23,7 @@ public class AnnotatedOperationFilter implements Filter<DocumentationOperation> 
         DocumentationOperation operation = context.subject();
         HandlerMethod handlerMethod = context.get("handlerMethod");
         ControllerDocumentation controllerDocumentation = context.get("controllerDocumentation");
-        SwaggerConfiguration swaggerConfiguration  = context.get("swaggerConfiguration");
+        SwaggerConfiguration swaggerConfiguration = context.get("swaggerConfiguration");
         documentOperation(controllerDocumentation, operation, handlerMethod, swaggerConfiguration);
     }
 
@@ -38,8 +38,10 @@ public class AnnotatedOperationFilter implements Filter<DocumentationOperation> 
             resolvedType = configuration.maybeGetAlternateType(parameterType);
         }
         if (apiOperation != null) {
+            //operation.setHttpMethod(apiOperation.httpMethod());
             operation.setSummary(apiOperation.value());
             operation.setNotes(apiOperation.notes());
+            operation.setNickname(handlerMethod.getMethod().getName());
             if (resolvedType != null && resolvedType.getErasedType() == null) {
                 if (apiOperation.multiValueResponse()) {
                     operation.setResponseClass(String.format("Array[%s]", apiOperation.responseClass()));

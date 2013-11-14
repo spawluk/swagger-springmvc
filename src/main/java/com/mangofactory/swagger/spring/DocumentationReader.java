@@ -175,7 +175,7 @@ public class DocumentationReader {
     }
 
     private boolean resourcePathMatchesController(String resourcePath, ControllerAdapter controllerAdapter) {
-        String simpleName = controllerAdapter.getControllerClass().getSimpleName();
+        String simpleName = controllerAdapter.getControllerClass().getSimpleName().replace("Resource", "");
         String controllerDescription = Descriptions.splitCamelCase(simpleName, "-").toLowerCase();
         return resourcePath.endsWith(controllerDescription);
     }

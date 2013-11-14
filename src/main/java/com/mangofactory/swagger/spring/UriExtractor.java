@@ -3,6 +3,7 @@ package com.mangofactory.swagger.spring;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.mangofactory.swagger.spring.Descriptions.splitCamelCase;
+import com.wordnik.swagger.annotations.Api;
 
 import java.lang.reflect.AnnotatedElement;
 import java.util.List;
@@ -18,7 +19,16 @@ public class UriExtractor {
 
     public static List<String> controllerUris(Class<?> controllerClass) {
         List<String> controllerUris = newArrayList();
-        List<String> classLevelUris = resolveRequestUri(controllerClass, requestMapping(controllerClass));
+        List<String> classLevelUris = newArrayList();
+        Api api = apiAnnotation(controllerClass);
+        
+        // resolves url of request mapping of controller
+        if(api != null) {
+            classLevelUris.add(0, api.value());
+        } else {
+            classLevelUris = resolveRequestUri(controllerClass, requestMapping(controllerClass));
+        }
+
         String defaultUri = splitCamelCase(controllerClass.getSimpleName(), "-").toLowerCase();
         if (classLevelUris.isEmpty()) {
             classLevelUris.add("/" + defaultUri);
@@ -38,7 +48,11 @@ public class UriExtractor {
     }
 
     public static List<String> methodUris(Class<?> controllerClass, HandlerMethod handlerMethod) {
+//        Api api = apiAnnotation(controllerClass);
         List<String> classLevelUris = resolveRequestUri(controllerClass, requestMapping(controllerClass));
+//        if(api != null) {
+//            classLevelUris.add(0, api.value());
+//        }
         if (classLevelUris.isEmpty()) {
             classLevelUris.add("/");
         }
@@ -63,6 +77,10 @@ public class UriExtractor {
         }
     }
 
+    private static Api apiAnnotation(Class<?> annotated) {
+        return AnnotationUtils.findAnnotation(annotated, Api.class);
+    }
+    
     private static RequestMapping requestMapping(Class<?> annotated) {
         return AnnotationUtils.findAnnotation(annotated, RequestMapping.class);
     }

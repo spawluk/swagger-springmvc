@@ -10,7 +10,7 @@ public class AnnotatedEndpointFilter implements Filter<DocumentationEndPoint> {
         Class<?> controllerClass = context.get("controllerClass");
         doc.setDescription(getDescription(controllerClass));
     }
-
+    
     private String getDescription(Class<?> controllerClass) {
         Api apiAnnotation = controllerClass.getAnnotation(Api.class);
         if (apiAnnotation == null) {
