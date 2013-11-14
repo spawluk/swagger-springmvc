@@ -48,11 +48,8 @@ public class UriExtractor {
     }
 
     public static List<String> methodUris(Class<?> controllerClass, HandlerMethod handlerMethod) {
-//        Api api = apiAnnotation(controllerClass);
         List<String> classLevelUris = resolveRequestUri(controllerClass, requestMapping(controllerClass));
-//        if(api != null) {
-//            classLevelUris.add(0, api.value());
-//        }
+
         if (classLevelUris.isEmpty()) {
             classLevelUris.add("/");
         }

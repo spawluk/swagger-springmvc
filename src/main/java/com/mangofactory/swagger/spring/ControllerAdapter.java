@@ -55,14 +55,6 @@ public class ControllerAdapter {
     }
 
     private List<String> getListingPaths() {
-//        List<String> uris = UriExtractor.methodUris(controllerClass, handlerMethod);
-//        List<String> result = new ArrayList<String>();
-//        String tempUri;
-//        for(String uri : uris) {
-//            tempUri = uri.split("\\{")[0];
-//            result.add(tempUri.substring(0, tempUri.length() - 1));
-//        }
-//        return result;
         Api apiAnnotation = controllerClass.getAnnotation(Api.class);
         if (apiAnnotation == null || apiAnnotation.listingPath().equals("")) {
             return controllerUris(controllerClass);
